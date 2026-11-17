@@ -53,7 +53,7 @@ redis:
 backend:
   replicaCount: 1
   image:
-    repository: techdebt-backend
+    repository: vivek512/techdebt-backend
     tag: latest
     pullPolicy: IfNotPresent
   service:
@@ -77,7 +77,7 @@ backend:
 worker:
   replicaCount: 1
   image:
-    repository: techdebt-backend
+    repository: vivek512/techdebt-backend
     tag: latest
     pullPolicy: IfNotPresent
   command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "--loglevel=info"]
@@ -87,7 +87,7 @@ worker:
 frontend:
   replicaCount: 1
   image:
-    repository: techdebt-frontend
+    repository: vivek512/techdebt-frontend
     tag: latest
     pullPolicy: IfNotPresent
   service:
