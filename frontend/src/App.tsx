@@ -263,86 +263,36 @@ function OverviewPage() {
 function AccountsPage() {
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({ queryKey: ['accounts'], queryFn: api.getAccounts })
-  const [form, setForm] = useState({ account_name: '', auth_type: 'keys', access_key_id: '', secret_access_key: '', session_token: '', profile_name: '', role_arn: '', external_id: '' })
-  const createMut = useMutation({ mutationFn: api.createAccount, onSuccess: () => { qc.invalidateQueries({queryKey:['accounts']}); setForm({account_name:'', auth_type:'keys', access_key_id:'', secret_access_key:'', session_token:'', profile_name:'', role_arn:'', external_id:''}) } })
   const connectMut = useMutation({ mutationFn: (id:number)=>api.connectAccount(id), onSuccess: () => qc.invalidateQueries({queryKey:['accounts']}) })
   const scanMut = useMutation({ mutationFn: (id:number)=>api.scanAccount(id), onSuccess: () => { qc.invalidateQueries({queryKey:['overview']}); qc.invalidateQueries({queryKey:['resources']}); } })
-  const testMut = useMutation({ mutationFn: (payload?: any) => api.testConnection(payload) })
-  const submitCreate = () => {
-    const payload: any = { account_name: form.account_name, auth_type: form.auth_type }
-    if (form.auth_type === 'keys') {
-      payload.access_key_id = form.access_key_id
-      payload.secret_access_key = form.secret_access_key
-      if (form.session_token) payload.session_token = form.session_token
-    } else {
-      if (form.profile_name) payload.profile_name = form.profile_name
-    }
-    if (form.role_arn) payload.role_arn = form.role_arn
-    if (form.external_id) payload.external_id = form.external_id
-    createMut.mutate(payload)
-  }
-  const testPortalCreds = () => {
-    if (form.auth_type === 'keys' && form.access_key_id && form.secret_access_key) {
-      testMut.mutate({ access_key_id: form.access_key_id, secret_access_key: form.secret_access_key, session_token: form.session_token || undefined })
-    } else {
-      testMut.mutate(undefined)
-    }
-  }
   return (
     <div className="space-y-5">
-      <PageHeader title="AWS Accounts" subtitle="Connect AWS accounts, discover regions, and run read-only inventory scans" actions={<button onClick={testPortalCreds} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm hover:bg-slate-800">Test Connection</button>} />
-      {testMut.data && <pre className="text-xs bg-slate-900 border border-slate-800 rounded-lg p-3 overflow-auto">{JSON.stringify(testMut.data, null, 2)}</pre>}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <Panel title="Portal Login" subtitle="Access Key & Secret Access Key" className="xl:col-span-1">
-          <div className="space-y-3">
-            <div><label className="mb-1 block text-xs text-slate-400">Account name</label><input value={form.account_name} onChange={e=>setForm({...form,account_name:e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm" placeholder="My AWS Account" /></div>
-            <div><label className="mb-1 block text-xs text-slate-400">Authentication method</label>
-              <select value={form.auth_type} onChange={e=>setForm({...form,auth_type:e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
-                <option value="keys">Access Key & Secret (Portal)</option>
-                <option value="profile">AWS Profile</option>
-                <option value="role">Assume Role</option>
-              </select>
-            </div>
-            {form.auth_type === 'keys' && (<>
-              <div><label className="mb-1 block text-xs text-slate-400">Access Key ID</label><input value={form.access_key_id} onChange={e=>setForm({...form,access_key_id:e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm" placeholder="AKIA..." autoComplete="off" /></div>
-              <div><label className="mb-1 block text-xs text-slate-400">Secret Access Key</label><input type="password" value={form.secret_access_key} onChange={e=>setForm({...form,secret_access_key:e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm" placeholder="Secret access key" autoComplete="new-password" /></div>
-              <div><label className="mb-1 block text-xs text-slate-400">Session Token (optional)</label><input type="password" value={form.session_token} onChange={e=>setForm({...form,session_token:e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm" placeholder="For temporary credentials" /></div>
-            </>)}
-            {form.auth_type === 'profile' && <div><label className="mb-1 block text-xs text-slate-400">Profile name</label><input value={form.profile_name} onChange={e=>setForm({...form,profile_name:e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm" placeholder="default" /></div>}
-            <div><label className="mb-1 block text-xs text-slate-400">Role ARN (optional)</label><input value={form.role_arn} onChange={e=>setForm({...form,role_arn:e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm" placeholder="arn:aws:iam::...:role/..." /></div>
-            <div><label className="mb-1 block text-xs text-slate-400">External ID (optional)</label><input value={form.external_id} onChange={e=>setForm({...form,external_id:e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm" /></div>
-            <button onClick={submitCreate} disabled={createMut.isPending || (form.auth_type==='keys' && (!form.access_key_id || !form.secret_access_key))} className="w-full rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-slate-950 hover:bg-amber-400 disabled:opacity-50">{createMut.isPending?'Saving...':'Add Account'}</button>
-            {createMut.error && <div className="text-xs text-red-400">{String((createMut.error as any)?.response?.data?.detail || (createMut.error as any)?.message || createMut.error)}</div>}
-            <p className="text-xs text-slate-500">Use least-privilege, read-only IAM credentials for discovery.</p>
+      <PageHeader title="AWS Accounts" subtitle="Manage connected AWS accounts, discover regions, and run read-only inventory scans" />
+      <Panel title="Connected Accounts" subtitle={`${data?.total || 0} account(s) registered`}>
+        {isLoading ? <div className="text-slate-400">Loading...</div> : (
+          <div className="overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="text-xs uppercase text-slate-400"><tr className="border-b border-slate-800"><th className="py-2 pr-3 text-left">Account</th><th className="py-2 pr-3 text-left">Account ID</th><th className="py-2 pr-3 text-left">Status</th><th className="py-2 pr-3 text-left">Regions</th><th className="py-2 pr-3 text-left">Actions</th></tr></thead>
+              <tbody>
+                {(data?.items||[]).map((a:any)=>(
+                  <tr key={a.id} className="border-b border-slate-800/60">
+                    <td className="py-3 pr-3 font-medium text-white">{a.account_name || '-'}</td>
+                    <td className="py-3 pr-3 font-mono text-xs text-slate-300">{a.account_id || '-'}</td>
+                    <td className="py-3 pr-3"><Badge tone={a.last_connection_status==='connected'?'good':'warn'}>{a.last_connection_status || a.status || 'unknown'}</Badge>{a.last_error && <div className="mt-1 max-w-md truncate text-xs text-red-400" title={a.last_error}>{a.last_error}</div>}</td>
+                    <td className="py-3 pr-3 text-slate-300">{a.regions_count}</td>
+                    <td className="py-3 pr-3 space-x-2 whitespace-nowrap">
+                      <button onClick={()=>connectMut.mutate(a.id)} className="rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs hover:bg-slate-800">Connect</button>
+                      <button onClick={()=>scanMut.mutate(a.id)} className="inline-flex items-center gap-1 rounded-md border border-amber-700/50 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-300 hover:bg-amber-500/20"><Play size={12}/>Scan</button>
+                    </td>
+                  </tr>
+                ))}
+                {(!data?.items || data.items.length===0) && <tr><td colSpan={5} className="py-8 text-center text-slate-500">No accounts connected yet. Sign in from the portal login page to connect an AWS account.</td></tr>}
+              </tbody>
+            </table>
           </div>
-        </Panel>
-
-        <Panel title="Connected Accounts" subtitle={`${data?.total || 0} account(s) registered`} className="xl:col-span-2">
-          {isLoading ? <div className="text-slate-400">Loading...</div> : (
-            <div className="overflow-auto">
-              <table className="w-full text-sm">
-                <thead className="text-xs uppercase text-slate-400"><tr className="border-b border-slate-800"><th className="py-2 pr-3 text-left">Account</th><th className="py-2 pr-3 text-left">Account ID</th><th className="py-2 pr-3 text-left">Status</th><th className="py-2 pr-3 text-left">Regions</th><th className="py-2 pr-3 text-left">Actions</th></tr></thead>
-                <tbody>
-                  {(data?.items||[]).map((a:any)=>(
-                    <tr key={a.id} className="border-b border-slate-800/60">
-                      <td className="py-3 pr-3 font-medium text-white">{a.account_name || '-'}</td>
-                      <td className="py-3 pr-3 font-mono text-xs text-slate-300">{a.account_id || '-'}</td>
-                      <td className="py-3 pr-3"><Badge tone={a.last_connection_status==='connected'?'good':'warn'}>{a.last_connection_status || a.status || 'unknown'}</Badge>{a.last_error && <div className="mt-1 max-w-md truncate text-xs text-red-400" title={a.last_error}>{a.last_error}</div>}</td>
-                      <td className="py-3 pr-3 text-slate-300">{a.regions_count}</td>
-                      <td className="py-3 pr-3 space-x-2 whitespace-nowrap">
-                        <button onClick={()=>connectMut.mutate(a.id)} className="rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs hover:bg-slate-800">Connect</button>
-                        <button onClick={()=>scanMut.mutate(a.id)} className="inline-flex items-center gap-1 rounded-md border border-amber-700/50 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-300 hover:bg-amber-500/20"><Play size={12}/>Scan</button>
-                      </td>
-                    </tr>
-                  ))}
-                  {(!data?.items || data.items.length===0) && <tr><td colSpan={5} className="py-8 text-center text-slate-500">No accounts registered yet. Add an account to begin discovery.</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {(scanMut.data || scanMut.error) && <pre className="mt-4 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs">{JSON.stringify(scanMut.data || (scanMut.error as any)?.response?.data || String(scanMut.error), null, 2)}</pre>}
-        </Panel>
-      </div>
+        )}
+        {(scanMut.data || scanMut.error) && <pre className="mt-4 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs">{JSON.stringify(scanMut.data || (scanMut.error as any)?.response?.data || String(scanMut.error), null, 2)}</pre>}
+      </Panel>
     </div>
   )
 }
