@@ -1,0 +1,30 @@
+TechDebt Management Platform has been deployed (release: {{ .Release.Name }}, namespace: {{ .Release.Namespace }}).
+
+1. Check resources:
+   kubectl get all -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+2. Access the UI:
+{{- if eq .Values.frontend.service.type "NodePort" }}
+   NodePort: http://<NODE_IP>:{{ .Values.frontend.service.nodePort }}
+   minikube: minikube service {{ include "techdebt.frontendServiceName" . }} -n {{ .Release.Namespace }} --url
+{{- else if eq .Values.frontend.service.type "LoadBalancer" }}
+   kubectl get svc {{ include "techdebt.frontendServiceName" . }} -n {{ .Release.Namespace }}
+{{- else }}
+   kubectl port-forward svc/{{ include "techdebt.frontendServiceName" . }} -n {{ .Release.Namespace }} {{ .Values.frontend.service.port }}:{{ .Values.frontend.service.port }}
+   Then open: http://localhost:{{ .Values.frontend.service.port }}
+{{- end }}
+
+3. Backend API:
+{{- if eq .Values.backend.service.type "NodePort" }}
+   http://<NODE_IP>:{{ .Values.backend.service.nodePort }}/health
+{{- else }}
+   kubectl port-forward svc/{{ include "techdebt.backendServiceName" . }} -n {{ .Release.Namespace }} {{ .Values.backend.service.port }}:{{ .Values.backend.service.port }}
+{{- end }}
+
+4. Portal login:
+   Open the UI and sign in with AWS Access Key ID and Secret Access Key (read-only credentials recommended).
+
+Notes:
+- Images default to {{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }} and {{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }} (imagePullPolicy: IfNotPresent). Build/load or push images accessible to your cluster.
+- Postgres persistence: {{ .Values.postgres.persistence.enabled }} (default storage {{ .Values.postgres.persistence.size }}).
+- For GitOps with Argo CD, use deploy/argocd/application-helm.yaml (update repoURL/targetRevision).

@@ -1,0 +1,17 @@
+apiVersion: v2
+name: techdebt-platform
+description: Helm chart for TechDebt Management Platform (AWS Lifecycle & Technical Debt Intelligence)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - techdebt
+  - aws
+  - lifecycle
+  - finops
+  - inventory
+home: https://github.com/REPLACE_ORG/REPLACE_REPO
+sources:
+  - https://github.com/REPLACE_ORG/REPLACE_REPO
+maintainers:
+  - name: platform-team

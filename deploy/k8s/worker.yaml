@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: techdebt
+  labels:
+    app.kubernetes.io/name: worker
+    app.kubernetes.io/part-of: techdebt-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+        app.kubernetes.io/name: worker
+        app.kubernetes.io/part-of: techdebt-platform
+    spec:
+      containers:
+        - name: worker
+          image: techdebt-backend:local
+          imagePullPolicy: IfNotPresent
+          command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "--loglevel=info"]
+          envFrom:
+            - configMapRef:
+                name: techdebt-config
+            - secretRef:
+                name: techdebt-secrets
