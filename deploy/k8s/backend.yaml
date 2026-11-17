@@ -38,7 +38,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: techdebt-backend:latest
+          image: vivek512/techdebt-backend:latest
           imagePullPolicy: IfNotPresent
           command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
           ports:
