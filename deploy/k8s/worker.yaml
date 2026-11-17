@@ -21,7 +21,7 @@ spec:
       containers:
         - name: worker
           image: vivek512/techdebt-backend:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "--loglevel=info"]
           envFrom:
             - configMapRef:

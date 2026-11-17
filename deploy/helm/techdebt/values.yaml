@@ -55,7 +55,7 @@ backend:
   image:
     repository: vivek512/techdebt-backend
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   service:
     type: NodePort
     port: 8000
@@ -79,7 +79,7 @@ worker:
   image:
     repository: vivek512/techdebt-backend
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "--loglevel=info"]
   env: {}
   resources: {}
@@ -89,7 +89,7 @@ frontend:
   image:
     repository: vivek512/techdebt-frontend
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   service:
     type: NodePort
     port: 5173

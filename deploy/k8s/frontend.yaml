@@ -39,7 +39,7 @@ spec:
       containers:
         - name: frontend
           image: vivek512/techdebt-frontend:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
           ports:
             - containerPort: 5173
