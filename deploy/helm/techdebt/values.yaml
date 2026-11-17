@@ -54,7 +54,7 @@ backend:
   replicaCount: 1
   image:
     repository: techdebt-backend
-    tag: local
+    tag: latest
     pullPolicy: IfNotPresent
   service:
     type: NodePort
@@ -78,7 +78,7 @@ worker:
   replicaCount: 1
   image:
     repository: techdebt-backend
-    tag: local
+    tag: latest
     pullPolicy: IfNotPresent
   command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "--loglevel=info"]
   env: {}
@@ -88,7 +88,7 @@ frontend:
   replicaCount: 1
   image:
     repository: techdebt-frontend
-    tag: local
+    tag: latest
     pullPolicy: IfNotPresent
   service:
     type: NodePort
