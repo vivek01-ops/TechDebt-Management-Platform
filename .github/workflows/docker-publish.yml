@@ -15,7 +15,7 @@ env:
 
 jobs:
   build:
-    name: Build
+    name: Image Build
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,16 +58,15 @@ jobs:
           retention-days: 1
 
   push:
-    name: Push
+    name: Image Push (Commit ID)
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name != 'pull_request'
     permissions:
       contents: read
+    outputs:
+      sha_tag: ${{ steps.vars.outputs.sha_tag }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Download image artifacts
         uses: actions/download-artifact@v4
         with:
@@ -87,52 +86,71 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata (backend)
-        id: meta-backend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.BACKEND_IMAGE }}
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Extract metadata (frontend)
-        id: meta-frontend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.FRONTEND_IMAGE }}
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Tag and push backend image
+      - name: Set commit image tag
+        id: vars
         shell: bash
+        run: echo "sha_tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Tag and push backend image (latest commit ID)
+        shell: bash
+        env:
+          SHA_TAG: ${{ steps.vars.outputs.sha_tag }}
         run: |
           set -euo pipefail
-          while IFS= read -r tag; do
-            [ -z "$tag" ] && continue
-            echo "Tagging and pushing $tag"
-            docker tag techdebt-backend:ci "$tag"
-            docker push "$tag"
-          done <<'TAGS'
-          ${{ steps.meta-backend.outputs.tags }}
-          TAGS
+          image_tag="${BACKEND_IMAGE}:${SHA_TAG}"
+          echo "Tagging and pushing ${image_tag}"
+          docker tag techdebt-backend:ci "${image_tag}"
+          docker push "${image_tag}"
 
-      - name: Tag and push frontend image
+      - name: Tag and push frontend image (latest commit ID)
         shell: bash
+        env:
+          SHA_TAG: ${{ steps.vars.outputs.sha_tag }}
         run: |
           set -euo pipefail
-          while IFS= read -r tag; do
-            [ -z "$tag" ] && continue
-            echo "Tagging and pushing $tag"
-            docker tag techdebt-frontend:ci "$tag"
-            docker push "$tag"
-          done <<'TAGS'
-          ${{ steps.meta-frontend.outputs.tags }}
-          TAGS
+          image_tag="${FRONTEND_IMAGE}:${SHA_TAG}"
+          echo "Tagging and pushing ${image_tag}"
+          docker tag techdebt-frontend:ci "${image_tag}"
+          docker push "${image_tag}"
+
+  update-deploy:
+    name: Update Deploy Manifests
+    runs-on: ubuntu-latest
+    needs: push
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update deployment manifests with commit image tag
+        shell: bash
+        env:
+          SHA_TAG: ${{ needs.push.outputs.sha_tag }}
+        run: |
+          set -euo pipefail
+          # Helm values (app image tags)
+          sed -i -E '/^[[:space:]]*repository:[[:space:]]*vivek512\/techdebt-backend/{n;s/^([[:space:]]*tag:[[:space:]]*).*/\1'"${SHA_TAG}"'/;}' deploy/helm/techdebt/values.yaml
+          sed -i -E '/^[[:space:]]*repository:[[:space:]]*vivek512\/techdebt-frontend/{n;s/^([[:space:]]*tag:[[:space:]]*).*/\1'"${SHA_TAG}"'/;}' deploy/helm/techdebt/values.yaml
+          # Raw k8s manifests
+          sed -i -E 's|(image:[[:space:]]*vivek512/techdebt-backend:)[^[:space:]]+|\1'"${SHA_TAG}"'|g' deploy/k8s/backend.yaml deploy/k8s/worker.yaml
+          sed -i -E 's|(image:[[:space:]]*vivek512/techdebt-frontend:)[^[:space:]]+|\1'"${SHA_TAG}"'|g' deploy/k8s/frontend.yaml
+
+      - name: Commit and push deployment tag update
+        shell: bash
+        env:
+          SHA_TAG: ${{ needs.push.outputs.sha_tag }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- deploy/helm/techdebt/values.yaml deploy/k8s/backend.yaml deploy/k8s/worker.yaml deploy/k8s/frontend.yaml; then
+            echo "No deployment tag changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deploy/helm/techdebt/values.yaml deploy/k8s/backend.yaml deploy/k8s/worker.yaml deploy/k8s/frontend.yaml
+          git commit -m "chore(deploy): update image tags to ${SHA_TAG} [skip ci]"
+          git push
