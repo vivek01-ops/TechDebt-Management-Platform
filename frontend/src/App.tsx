@@ -7,13 +7,39 @@ import * as api from './api'
 import {
   LayoutDashboard, Cloud, Server, Package, ShieldAlert, AlertTriangle, BarChart3,
   Wrench, Network, History, Database, Users, Settings, RefreshCw, Search, Play, LogOut,
-  Activity, ChevronRight, CheckCircle2, Clock, XCircle, Info, Bell, X, AlertCircle, Loader2, Inbox
+  Activity, ChevronRight, CheckCircle2, Clock, XCircle, Info, Bell, X, Loader2, Inbox,
+  Menu, Sun, Moon, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react'
 
+type Theme = 'light' | 'dark'
 type ToastTone = 'success' | 'error' | 'info' | 'warning'
 type Toast = { id: number; title: string; description?: string; tone: ToastTone }
 
+const ThemeContext = createContext<{ theme: Theme; toggle: () => void } | null>(null)
 const ToastContext = createContext<{ notify: (t: Omit<Toast, 'id'>) => void } | null>(null)
+
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'dark'
+  const saved = window.localStorage.getItem('td_theme')
+  if (saved === 'light' || saved === 'dark') return saved
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+}
+
+function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setTheme] = useState<Theme>(getInitialTheme)
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    window.localStorage.setItem('td_theme', theme)
+  }, [theme])
+  const toggle = useCallback(() => setTheme(t => t === 'dark' ? 'light' : 'dark'), [])
+  return <ThemeContext.Provider value={{ theme, toggle }}>{children}</ThemeContext.Provider>
+}
+
+function useTheme() {
+  const ctx = useContext(ThemeContext)
+  if (!ctx) throw new Error('useTheme must be used within ThemeProvider')
+  return ctx
+}
 
 function useToast() {
   const ctx = useContext(ToastContext)
@@ -53,40 +79,28 @@ function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 const navGroups = [
-  {
-    title: 'Overview',
-    items: [
-      { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/watchlist', label: 'EOS/EOL Watchlist', icon: ShieldAlert },
-    ],
-  },
-  {
-    title: 'Inventory',
-    items: [
-      { to: '/accounts', label: 'AWS Accounts', icon: Cloud },
-      { to: '/resources', label: 'Resources', icon: Server },
-      { to: '/software', label: 'Software', icon: Package },
-    ],
-  },
-  {
-    title: 'Lifecycle & Risk',
-    items: [
-      { to: '/lifecycle', label: 'Lifecycle Catalog', icon: Database },
-      { to: '/analytics', label: 'Debt Analytics', icon: BarChart3 },
-      { to: '/risk', label: 'Risk Assessment', icon: AlertTriangle },
-      { to: '/remediation', label: 'Remediation', icon: Wrench },
-    ],
-  },
-  {
-    title: 'Operations',
-    items: [
-      { to: '/coverage', label: 'Collector Coverage', icon: Network },
-      { to: '/history', label: 'Collection History', icon: History },
-      { to: '/sources', label: 'Data Sources', icon: Database },
-      { to: '/teams', label: 'Teams & Ownership', icon: Users },
-      { to: '/settings', label: 'Settings', icon: Settings },
-    ],
-  },
+  { title: 'Overview', items: [
+    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/watchlist', label: 'EOS/EOL Watchlist', icon: ShieldAlert },
+  ]},
+  { title: 'Inventory', items: [
+    { to: '/accounts', label: 'AWS Accounts', icon: Cloud },
+    { to: '/resources', label: 'Resources', icon: Server },
+    { to: '/software', label: 'Software', icon: Package },
+  ]},
+  { title: 'Lifecycle & Risk', items: [
+    { to: '/lifecycle', label: 'Lifecycle Catalog', icon: Database },
+    { to: '/analytics', label: 'Debt Analytics', icon: BarChart3 },
+    { to: '/risk', label: 'Risk Assessment', icon: AlertTriangle },
+    { to: '/remediation', label: 'Remediation', icon: Wrench },
+  ]},
+  { title: 'Operations', items: [
+    { to: '/coverage', label: 'Collector Coverage', icon: Network },
+    { to: '/history', label: 'Collection History', icon: History },
+    { to: '/sources', label: 'Data Sources', icon: Database },
+    { to: '/teams', label: 'Teams & Ownership', icon: Users },
+    { to: '/settings', label: 'Settings', icon: Settings },
+  ]},
 ]
 
 const routeTitles: Record<string, string> = {
@@ -124,21 +138,26 @@ function formatErr(err: any): string {
   return text
 }
 
-function StatCard({ label, value, hint, tone, icon: Icon, loading }: { label: string; value: ReactNode; hint?: string; tone?: 'default'|'good'|'warn'|'critical'; icon?: any; loading?: boolean }) {
-  const tones: any = {
-    default: 'text-white',
-    good: 'text-emerald-400',
-    warn: 'text-amber-400',
-    critical: 'text-red-400',
-  }
-  const ring: any = {
-    default: 'border-slate-800',
-    good: 'border-emerald-900/40',
-    warn: 'border-amber-900/40',
-    critical: 'border-red-900/40',
-  }
+function ThemeToggle({ compact = false }: { compact?: boolean }) {
+  const { theme, toggle } = useTheme()
+  const isDark = theme === 'dark'
   return (
-    <div className={`rounded-xl border bg-slate-900/60 p-4 ${ring[tone || 'default']}`}>
+    <button
+      onClick={toggle}
+      title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+      className={`inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${compact ? 'px-2.5' : ''}`}
+    >
+      {isDark ? <Sun size={15} /> : <Moon size={15} />}
+      {!compact && <span>{isDark ? 'Light mode' : 'Dark mode'}</span>}
+    </button>
+  )
+}
+
+function StatCard({ label, value, hint, tone, icon: Icon, loading }: { label: string; value: ReactNode; hint?: string; tone?: 'default'|'good'|'warn'|'critical'; icon?: any; loading?: boolean }) {
+  const tones: any = { default: 'text-white', good: 'text-emerald-400', warn: 'text-amber-400', critical: 'text-red-400' }
+  const ring: any = { default: 'border-slate-800', good: 'border-emerald-900/40', warn: 'border-amber-900/40', critical: 'border-red-900/40' }
+  return (
+    <div className={`card-hover rounded-xl border bg-slate-900/60 p-4 ${ring[tone || 'default']}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-wide text-slate-400">{label}</div>
@@ -153,7 +172,7 @@ function StatCard({ label, value, hint, tone, icon: Icon, loading }: { label: st
 
 function Panel({ title, subtitle, action, children, className = '' }: { title: string; subtitle?: string; action?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-xl border border-slate-800 bg-slate-900/60 ${className}`}>
+    <div className={`card-hover rounded-xl border border-slate-800 bg-slate-900/60 ${className}`}>
       <div className="flex items-start justify-between gap-3 border-b border-slate-800 px-4 py-3">
         <div>
           <h2 className="text-sm font-semibold text-white">{title}</h2>
@@ -170,10 +189,10 @@ function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: st
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-semibold text-white">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-slate-400">{subtitle}</p>}
+        <h1 className="text-2xl font-semibold tracking-tight text-white">{title}</h1>
+        {subtitle && <p className="mt-1 max-w-3xl text-sm text-slate-400">{subtitle}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   )
 }
@@ -184,7 +203,7 @@ function Badge({ children, tone = 'default' }: { children: ReactNode; tone?: 'de
     : tone === 'critical' ? 'bg-red-950/60 text-red-300 border-red-800/60'
     : tone === 'info' ? 'bg-sky-950/60 text-sky-300 border-sky-800/60'
     : 'bg-slate-800 text-slate-300 border-slate-700'
-  return <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs ${cls}`}>{children}</span>
+  return <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${cls}`}>{children}</span>
 }
 
 function InlineAlert({ tone = 'info', title, message, action }: { tone?: 'info'|'success'|'warning'|'error'; title?: string; message: string; action?: ReactNode }) {
@@ -222,68 +241,88 @@ function EmptyState({ title, description, action }: { title: string; description
 
 function Shell({ children, onLogout }: { children: ReactNode; onLogout?: () => void }) {
   const location = useLocation()
+  const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const pageTitle = routeTitles[location.pathname] || (location.pathname.startsWith('/resources/') ? 'Resource Details' : 'TechDebt Platform')
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-200">
-      <div className="flex min-h-screen">
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-slate-800 bg-slate-950/95 lg:flex lg:flex-col">
-          <div className="border-b border-slate-800 px-4 py-4">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400"><Activity size={18} /></div>
-              <div>
-                <div className="text-sm font-semibold text-white">TechDebt Platform</div>
-                <div className="text-[11px] text-slate-500">AWS Lifecycle Intelligence</div>
-              </div>
-            </div>
+
+  useEffect(() => { setMobileOpen(false) }, [location.pathname])
+
+  const Nav = ({ showLabels = true }: { showLabels?: boolean }) => (
+    <nav className="flex-1 overflow-auto px-3 py-3">
+      {navGroups.map(group => (
+        <div key={group.title} className="mb-4">
+          {showLabels && <div className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">{group.title}</div>}
+          <div className="space-y-1">
+            {group.items.map(item => {
+              const Icon = item.icon
+              return (
+                <NavLink key={item.to} to={item.to} end={item.to === '/'} title={!showLabels ? item.label : undefined} className={({isActive}) => `flex items-center gap-2 rounded-lg ${showLabels ? 'px-2.5 py-2' : 'justify-center px-2 py-2.5'} text-sm transition ${isActive ? 'bg-amber-500/10 text-amber-300 ring-1 ring-inset ring-amber-500/20' : 'text-slate-300 hover:bg-slate-900 hover:text-white'}`}>
+                  <Icon size={16} />
+                  {showLabels && <span className="truncate">{item.label}</span>}
+                </NavLink>
+              )
+            })}
           </div>
-          <nav className="flex-1 overflow-auto px-3 py-3">
-            {navGroups.map(group => (
-              <div key={group.title} className="mb-4">
-                <div className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">{group.title}</div>
-                <div className="space-y-1">
-                  {group.items.map(item => {
-                    const Icon = item.icon
-                    return (
-                      <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({isActive}) => `flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition ${isActive ? 'bg-amber-500/10 text-amber-300 ring-1 ring-inset ring-amber-500/20' : 'text-slate-300 hover:bg-slate-900 hover:text-white'}`}>
-                        <Icon size={16} />
-                        <span>{item.label}</span>
-                      </NavLink>
-                    )
-                  })}
+        </div>
+      ))}
+    </nav>
+  )
+
+  return (
+    <div className="theme-app min-h-screen bg-slate-950 text-slate-200">
+      <div className="flex min-h-screen">
+        <aside className={`theme-sidebar sticky top-0 hidden h-screen shrink-0 border-r border-slate-800 bg-slate-950/95 transition-all duration-200 lg:flex lg:flex-col ${collapsed ? 'w-[76px]' : 'w-64'}`}>
+          <div className="flex items-center justify-between border-b border-slate-800 px-3 py-4">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400"><Activity size={18} /></div>
+              {!collapsed && (
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-white">TechDebt Platform</div>
+                  <div className="text-[11px] text-slate-500">AWS Lifecycle Intelligence</div>
                 </div>
-              </div>
-            ))}
-          </nav>
+              )}
+            </div>
+            <button onClick={() => setCollapsed(v => !v)} className="rounded-md p-1.5 text-slate-400 hover:bg-slate-900 hover:text-white" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+              {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            </button>
+          </div>
+          <Nav showLabels={!collapsed} />
           <div className="border-t border-slate-800 p-3">
-            {onLogout && <button onClick={onLogout} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-slate-300 hover:bg-slate-900 hover:text-white"><LogOut size={16} />Logout</button>}
+            {onLogout && <button onClick={onLogout} title={!collapsed ? undefined : 'Logout'} className={`flex w-full items-center gap-2 rounded-lg ${collapsed ? 'justify-center px-2 py-2.5' : 'px-2.5 py-2'} text-sm text-slate-300 hover:bg-slate-900 hover:text-white`}><LogOut size={16} />{!collapsed && 'Logout'}</button>}
           </div>
         </aside>
 
+        {mobileOpen && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setMobileOpen(false)} />}
+        <aside className={`theme-sidebar fixed inset-y-0 left-0 z-50 w-72 border-r border-slate-800 bg-slate-950/98 transition-transform duration-200 lg:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="flex items-center justify-between border-b border-slate-800 px-4 py-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400"><Activity size={18} /></div>
+              <div className="text-sm font-semibold text-white">TechDebt Platform</div>
+            </div>
+            <button onClick={() => setMobileOpen(false)} className="rounded-md p-1.5 text-slate-400 hover:bg-slate-900 hover:text-white"><X size={16} /></button>
+          </div>
+          <Nav />
+        </aside>
+
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 border-b border-slate-800 bg-slate-950/85 backdrop-blur">
+          <header className="theme-header sticky top-0 z-20 border-b border-slate-800 bg-slate-950/85 backdrop-blur">
             <div className="flex h-14 items-center justify-between px-4 lg:px-6">
               <div className="flex min-w-0 items-center gap-2 text-sm text-slate-400">
+                <button onClick={() => setMobileOpen(true)} className="mr-1 rounded-md p-1.5 text-slate-300 hover:bg-slate-900 lg:hidden"><Menu size={18} /></button>
                 <span className="hidden sm:inline">TechDebt</span>
                 <ChevronRight size={14} className="hidden sm:inline text-slate-600" />
-                <span className="truncate text-slate-200">{pageTitle}</span>
+                <span className="truncate font-medium text-slate-200">{pageTitle}</span>
               </div>
-              <div className="flex items-center gap-3 text-xs text-slate-500">
+              <div className="flex items-center gap-2 text-xs text-slate-500">
                 <span className="hidden items-center gap-1.5 md:inline-flex"><Bell size={13} />Notifications enabled</span>
                 <Badge tone="good">Read-only AWS</Badge>
+                <ThemeToggle compact />
               </div>
             </div>
-            <div className="flex gap-1 overflow-x-auto border-t border-slate-900 px-2 py-2 lg:hidden">
-              {navGroups.flatMap(g => g.items).slice(0, 8).map(item => {
-                const Icon = item.icon
-                return (
-                  <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({isActive}) => `flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs ${isActive ? 'bg-amber-500/10 text-amber-300' : 'text-slate-400 hover:text-white'}`}>
-                    <Icon size={14} />{item.label}
-                  </NavLink>
-                )
-              })}
-            </div>
           </header>
-          <main className="flex-1 p-4 lg:p-6">{children}</main>
+          <main className="flex-1 p-4 lg:p-6">
+            <div className="mx-auto w-full max-w-[1400px]">{children}</div>
+          </main>
         </div>
       </div>
     </div>
@@ -291,14 +330,17 @@ function Shell({ children, onLogout }: { children: ReactNode; onLogout?: () => v
 }
 
 function OverviewPage() {
+  const { theme } = useTheme()
   const { data, isLoading, error, refetch, isFetching } = useQuery({ queryKey: ['overview'], queryFn: api.getOverview })
+  const chartText = theme === 'dark' ? '#94a3b8' : '#475569'
+  const chartBorder = theme === 'dark' ? '#0f172a' : '#ffffff'
   const pieOption = useMemo(() => ({
     backgroundColor: 'transparent',
     tooltip: { trigger: 'item' },
-    legend: { textStyle: { color: '#94a3b8' }, bottom: 0, icon: 'circle' },
+    legend: { textStyle: { color: chartText }, bottom: 0, icon: 'circle' },
     series: [{
       type: 'pie', radius: ['50%', '72%'], center: ['50%', '42%'],
-      itemStyle: { borderRadius: 6, borderColor: '#0f172a', borderWidth: 2 },
+      itemStyle: { borderRadius: 6, borderColor: chartBorder, borderWidth: 2 },
       label: { show: false },
       data: [
         { value: data?.unsupported || 0, name: 'Unsupported', itemStyle: { color: '#ef4444' } },
@@ -308,13 +350,13 @@ function OverviewPage() {
         { value: Math.max((data?.total_resources || 0) - (data?.outdated_technologies || 0) - (data?.unknown_lifecycle || 0), 0), name: 'Healthy/Other', itemStyle: { color: '#10b981' } },
       ]
     }]
-  }), [data])
+  }), [data, chartText, chartBorder])
 
-  const statusTone = (s: any): 'good'|'warn'|'critical'|'default' => {
+  const statusTone = (s: any): 'good'|'warn'|'critical'|'info' => {
     const v = String(s || '').toLowerCase()
     if (v.includes('fail') || v.includes('error')) return 'critical'
     if (v.includes('complete') || v.includes('success') || v.includes('done')) return 'good'
-    if (v.includes('run') || v.includes('progress')) return 'info' as any
+    if (v.includes('run') || v.includes('progress')) return 'info'
     return 'warn'
   }
 
@@ -325,6 +367,8 @@ function OverviewPage() {
         subtitle="Organization-wide AWS technology lifecycle posture, inventory health, and technical debt exposure"
         actions={<button onClick={() => refetch()} disabled={isFetching} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 disabled:opacity-60"><RefreshCw size={14} className={isFetching ? 'animate-spin' : ''}/>{isFetching ? 'Refreshing' : 'Refresh'}</button>}
       />
+
+      <InlineAlert tone="info" title="Getting started" message="Connect an AWS account, run a scan, sync lifecycle data, and recompute matches to populate insights across the platform." />
 
       {error && <InlineAlert tone="error" title="Unable to load dashboard" message={formatErr(error)} action={<button onClick={() => refetch()} className="rounded-md border border-red-700/40 px-2.5 py-1.5 text-xs hover:bg-red-900/20">Retry</button>} />}
 
@@ -376,15 +420,15 @@ function OverviewPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Link to="/watchlist" className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition hover:border-amber-700/40 hover:bg-slate-900">
+        <Link to="/watchlist" className="card-hover rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition hover:border-amber-700/40 hover:bg-slate-900">
           <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-amber-400"><ShieldAlert size={18}/><span className="font-medium text-white">EOS/EOL Watchlist</span></div><ChevronRight size={16} className="text-slate-500"/></div>
           <p className="mt-2 text-sm text-slate-400">Review technologies nearing or past lifecycle milestones and prioritize remediation.</p>
         </Link>
-        <Link to="/resources" className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition hover:border-sky-700/40 hover:bg-slate-900">
+        <Link to="/resources" className="card-hover rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition hover:border-sky-700/40 hover:bg-slate-900">
           <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-sky-400"><Server size={18}/><span className="font-medium text-white">Resource Inventory</span></div><ChevronRight size={16} className="text-slate-500"/></div>
           <p className="mt-2 text-sm text-slate-400">Search discovered AWS resources, states, versions, and enrichment details.</p>
         </Link>
-        <Link to="/coverage" className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition hover:border-emerald-700/40 hover:bg-slate-900">
+        <Link to="/coverage" className="card-hover rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition hover:border-emerald-700/40 hover:bg-slate-900">
           <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-emerald-400"><Network size={18}/><span className="font-medium text-white">Collector Coverage</span></div><ChevronRight size={16} className="text-slate-500"/></div>
           <p className="mt-2 text-sm text-slate-400">Inspect adapter coverage, discovery breadth, and collection diagnostics.</p>
         </Link>
@@ -462,15 +506,14 @@ function ResourcesPage() {
   const [q, setQ] = useState('')
   const [search, setSearch] = useState('')
   const { data, isLoading, error, isFetching, refetch } = useQuery({ queryKey: ['resources', search], queryFn: () => api.getResources(search ? { q: search } : {}) })
-  useEffect(() => { /* sync on clear via button/enter */ }, [])
   const submit = () => setSearch(q.trim())
   return (
     <div className="space-y-5">
       <PageHeader title="Resource Inventory" subtitle="Discovered AWS resources across accounts and regions" />
       {error && <InlineAlert tone="error" title="Unable to load resources" message={formatErr(error)} action={<button onClick={()=>refetch()} className="rounded-md border border-red-700/40 px-2.5 py-1.5 text-xs hover:bg-red-900/20">Retry</button>} />}
       <Panel title="Resources" subtitle={`Total: ${data?.total ?? 0}${search ? ` · filtered by "${search}"` : ''}`} action={
-        <div className="flex gap-2">
-          <div className="relative"><Search size={14} className="absolute left-2.5 top-2.5 text-slate-500" /><input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter') submit() }} placeholder="Search name, ID, ARN..." className="w-64 rounded-lg border border-slate-700 bg-slate-950 py-2 pl-8 pr-3 text-sm" /></div>
+        <div className="flex flex-wrap gap-2">
+          <div className="relative"><Search size={14} className="absolute left-2.5 top-2.5 text-slate-500" /><input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter') submit() }} placeholder="Search name, ID, ARN..." className="w-64 rounded-lg border border-slate-700 bg-slate-950 py-2 pl-8 pr-3 text-sm outline-none ring-amber-500/20 focus:border-amber-600 focus:ring-2" /></div>
           <button onClick={submit} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm hover:bg-slate-800">Search</button>
           {search && <button onClick={()=>{setQ(''); setSearch('')}} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm hover:bg-slate-800">Clear</button>}
         </div>
@@ -545,7 +588,7 @@ function LifecyclePage() {
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['lifecycle-products'], queryFn: () => api.getLifecycleProducts({ limit: 100 }) })
   const syncMut = useMutation({
     mutationFn: () => api.syncLifecycle(50),
-    onSuccess: (res) => { qc.invalidateQueries({queryKey:['lifecycle-products']}); notify({ tone: 'success', title: 'Lifecycle sync completed', description: typeof res === 'object' ? `Products/sources synced successfully.` : 'endoflife.date data synchronized.' }) },
+    onSuccess: () => { qc.invalidateQueries({queryKey:['lifecycle-products']}); notify({ tone: 'success', title: 'Lifecycle sync completed', description: 'endoflife.date data synchronized successfully.' }) },
     onError: (err) => notify({ tone: 'error', title: 'Lifecycle sync failed', description: formatErr(err) })
   })
   return (
@@ -729,23 +772,24 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-6">
+    <div className="theme-app flex min-h-screen items-center justify-center bg-slate-950 p-6">
       <div className="w-full max-w-md">
+        <div className="mb-4 flex justify-end"><ThemeToggle compact /></div>
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400"><Activity size={24} /></div>
           <h1 className="text-2xl font-semibold text-white">TechDebt Platform</h1>
           <p className="mt-1 text-sm text-slate-400">AWS Lifecycle & Technical Debt Intelligence</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl shadow-black/20">
+        <div className="card-hover rounded-xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl shadow-black/20">
           <h2 className="text-lg font-medium text-white">Sign in to AWS</h2>
           <p className="mt-1 text-sm text-slate-400">Use read-only Access Key credentials to connect your AWS account for discovery.</p>
           <form onSubmit={onLogin} className="mt-5 space-y-4">
             <div>
-              <label className="mb-1 block text-xs text-slate-400">Access Key ID</label>
+              <label className="mb-1 block text-xs font-medium text-slate-400">Access Key ID</label>
               <input value={accessKey} onChange={e=>setAccessKey(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none ring-amber-500/30 focus:border-amber-600 focus:ring-2" placeholder="AKIA..." autoComplete="off" required />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-slate-400">Secret Access Key</label>
+              <label className="mb-1 block text-xs font-medium text-slate-400">Secret Access Key</label>
               <input type="password" value={secretKey} onChange={e=>setSecretKey(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none ring-amber-500/30 focus:border-amber-600 focus:ring-2" placeholder="Secret access key" autoComplete="new-password" required />
             </div>
             {error && <InlineAlert tone="error" message={error} />}
@@ -799,12 +843,14 @@ function AppShell() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ToastProvider>
-        <Routes>
-          <Route path="/login" element={isLoggedIn() ? <Navigate to="/" replace /> : <LoginPage />} />
-          <Route path="/*" element={<Protected><AppShell /></Protected>} />
-        </Routes>
-      </ToastProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <Routes>
+            <Route path="/login" element={isLoggedIn() ? <Navigate to="/" replace /> : <LoginPage />} />
+            <Route path="/*" element={<Protected><AppShell /></Protected>} />
+          </Routes>
+        </ToastProvider>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }
