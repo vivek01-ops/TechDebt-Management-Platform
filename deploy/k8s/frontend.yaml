@@ -38,7 +38,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: vivek512/techdebt-frontend:sha-6e174a8
+          image: vivek512/techdebt-frontend:sha-dea9bcc
           imagePullPolicy: Always
           command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
           ports:
