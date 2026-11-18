@@ -97,9 +97,3 @@ Includes unit tests for countdown/risk/normalization and collector/lifecycle log
 
 ## Documentation
 See `docs/` for architecture, discovery design, IAM setup, lifecycle/matching rules, database design, API, troubleshooting, and cloud deployment considerations.
-# TechDebt-Management-Platform
-# TechDebt-Management-Platform
-# TechDebt-Management-Platform
-# TechDebt-Management-Platform
-# TechDebt-Management-Platform
-# TechDebt-Management-Platform
