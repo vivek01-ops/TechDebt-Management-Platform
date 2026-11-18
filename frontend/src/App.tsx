@@ -156,15 +156,17 @@ function ThemeToggle({ compact = false }: { compact?: boolean }) {
 function StatCard({ label, value, hint, tone, icon: Icon, loading }: { label: string; value: ReactNode; hint?: string; tone?: 'default'|'good'|'warn'|'critical'; icon?: any; loading?: boolean }) {
   const tones: any = { default: 'text-white', good: 'text-emerald-400', warn: 'text-amber-400', critical: 'text-red-400' }
   const ring: any = { default: 'border-slate-800', good: 'border-emerald-900/40', warn: 'border-amber-900/40', critical: 'border-red-900/40' }
+  const accent: any = { default: 'from-slate-500/30 to-transparent', good: 'from-emerald-500/40 to-transparent', warn: 'from-amber-500/40 to-transparent', critical: 'from-red-500/40 to-transparent' }
   return (
-    <div className={`card-hover rounded-xl border bg-slate-900/60 p-4 ${ring[tone || 'default']}`}>
+    <div className={`card-hover glass-panel relative overflow-hidden rounded-xl border bg-slate-900/60 p-4 ${ring[tone || 'default']}`}>
+      <div className={`pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent[tone || 'default']}`} />
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-wide text-slate-400">{label}</div>
-          <div className={`mt-2 text-2xl font-semibold ${tones[tone || 'default']}`}>{loading ? <span className="text-slate-500">—</span> : value}</div>
+          <div className={`mt-2 text-2xl font-semibold tracking-tight ${tones[tone || 'default']}`}>{loading ? <span className="text-slate-500">—</span> : value}</div>
           {hint && <div className="mt-1 text-xs text-slate-500">{hint}</div>}
         </div>
-        {Icon && <div className="rounded-lg bg-slate-800/80 p-2 text-amber-400"><Icon size={18} /></div>}
+        {Icon && <div className="rounded-xl border border-slate-700/50 bg-slate-800/80 p-2.5 text-amber-400 shadow-sm"><Icon size={18} /></div>}
       </div>
     </div>
   )
@@ -172,8 +174,8 @@ function StatCard({ label, value, hint, tone, icon: Icon, loading }: { label: st
 
 function Panel({ title, subtitle, action, children, className = '' }: { title: string; subtitle?: string; action?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <div className={`card-hover rounded-xl border border-slate-800 bg-slate-900/60 ${className}`}>
-      <div className="flex items-start justify-between gap-3 border-b border-slate-800 px-4 py-3">
+    <div className={`glass-panel rounded-xl border border-slate-800 bg-slate-900/60 ${className}`}>
+      <div className="flex items-start justify-between gap-3 border-b border-slate-800/80 bg-slate-950/20 px-4 py-3.5">
         <div>
           <h2 className="text-sm font-semibold text-white">{title}</h2>
           {subtitle && <p className="mt-0.5 text-xs text-slate-400">{subtitle}</p>}
@@ -187,10 +189,11 @@ function Panel({ title, subtitle, action, children, className = '' }: { title: s
 
 function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
   return (
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4 rounded-xl border border-slate-800/70 bg-slate-900/30 px-4 py-4 glass-panel animate-fade-up">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-white">{title}</h1>
-        {subtitle && <p className="mt-1 max-w-3xl text-sm text-slate-400">{subtitle}</p>}
+        <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.16em] text-amber-400/80">TechDebt Platform</div>
+        <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-[1.7rem]">{title}</h1>
+        {subtitle && <p className="mt-1.5 max-w-3xl text-sm leading-6 text-slate-400">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -271,10 +274,10 @@ function Shell({ children, onLogout }: { children: ReactNode; onLogout?: () => v
   return (
     <div className="theme-app min-h-screen bg-slate-950 text-slate-200">
       <div className="flex min-h-screen">
-        <aside className={`theme-sidebar sticky top-0 hidden h-screen shrink-0 border-r border-slate-800 bg-slate-950/95 transition-all duration-200 lg:flex lg:flex-col ${collapsed ? 'w-[76px]' : 'w-64'}`}>
+        <aside className={`theme-sidebar sticky top-0 hidden h-screen shrink-0 border-r border-slate-800 bg-slate-950/95 transition-all duration-200 lg:flex lg:flex-col ${collapsed ? 'w-[76px]' : 'w-[272px]'}`}>
           <div className="flex items-center justify-between border-b border-slate-800 px-3 py-4">
-            <div className="flex min-w-0 items-center gap-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400"><Activity size={18} /></div>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400/20 to-amber-600/10 text-amber-400 ring-1 ring-amber-500/20"><Activity size={18} /></div>
               {!collapsed && (
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-white">TechDebt Platform</div>
@@ -282,13 +285,13 @@ function Shell({ children, onLogout }: { children: ReactNode; onLogout?: () => v
                 </div>
               )}
             </div>
-            <button onClick={() => setCollapsed(v => !v)} className="rounded-md p-1.5 text-slate-400 hover:bg-slate-900 hover:text-white" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+            <button onClick={() => setCollapsed(v => !v)} className="rounded-lg border border-transparent p-1.5 text-slate-400 hover:border-slate-700 hover:bg-slate-900 hover:text-white" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
               {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
             </button>
           </div>
           <Nav showLabels={!collapsed} />
           <div className="border-t border-slate-800 p-3">
-            {onLogout && <button onClick={onLogout} title={!collapsed ? undefined : 'Logout'} className={`flex w-full items-center gap-2 rounded-lg ${collapsed ? 'justify-center px-2 py-2.5' : 'px-2.5 py-2'} text-sm text-slate-300 hover:bg-slate-900 hover:text-white`}><LogOut size={16} />{!collapsed && 'Logout'}</button>}
+            {onLogout && <button onClick={onLogout} title={!collapsed ? undefined : 'Logout'} className={`flex w-full items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/40 ${collapsed ? 'justify-center px-2 py-2.5' : 'px-2.5 py-2'} text-sm text-slate-300 hover:bg-slate-900 hover:text-white`}><LogOut size={16} />{!collapsed && 'Logout'}</button>}
           </div>
         </aside>
 
@@ -306,15 +309,15 @@ function Shell({ children, onLogout }: { children: ReactNode; onLogout?: () => v
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="theme-header sticky top-0 z-20 border-b border-slate-800 bg-slate-950/85 backdrop-blur">
-            <div className="flex h-14 items-center justify-between px-4 lg:px-6">
+            <div className="flex h-[60px] items-center justify-between px-4 lg:px-6">
               <div className="flex min-w-0 items-center gap-2 text-sm text-slate-400">
-                <button onClick={() => setMobileOpen(true)} className="mr-1 rounded-md p-1.5 text-slate-300 hover:bg-slate-900 lg:hidden"><Menu size={18} /></button>
-                <span className="hidden sm:inline">TechDebt</span>
+                <button onClick={() => setMobileOpen(true)} className="mr-1 rounded-lg border border-slate-800 bg-slate-900/40 p-1.5 text-slate-300 hover:bg-slate-900 lg:hidden"><Menu size={18} /></button>
+                <span className="hidden rounded-md bg-slate-900/60 px-2 py-1 text-xs font-medium text-slate-300 sm:inline">TechDebt</span>
                 <ChevronRight size={14} className="hidden sm:inline text-slate-600" />
                 <span className="truncate font-medium text-slate-200">{pageTitle}</span>
               </div>
               <div className="flex items-center gap-2 text-xs text-slate-500">
-                <span className="hidden items-center gap-1.5 md:inline-flex"><Bell size={13} />Notifications enabled</span>
+                <span className="hidden items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/50 px-2.5 py-1 md:inline-flex"><Bell size={13} />Notifications enabled</span>
                 <Badge tone="good">Read-only AWS</Badge>
                 <ThemeToggle compact />
               </div>
@@ -368,7 +371,19 @@ function OverviewPage() {
         actions={<button onClick={() => refetch()} disabled={isFetching} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 disabled:opacity-60"><RefreshCw size={14} className={isFetching ? 'animate-spin' : ''}/>{isFetching ? 'Refreshing' : 'Refresh'}</button>}
       />
 
-      <InlineAlert tone="info" title="Getting started" message="Connect an AWS account, run a scan, sync lifecycle data, and recompute matches to populate insights across the platform." />
+      <div className="relative overflow-hidden rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-sky-500/5 to-transparent p-4 glass-panel animate-fade-up">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-amber-400/10 blur-2xl" />
+        <div className="relative flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-white">Getting started</div>
+            <p className="mt-1 max-w-3xl text-sm text-slate-400">Connect an AWS account, run a scan, sync lifecycle data, and recompute matches to populate insights across the platform.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/accounts" className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm hover:bg-slate-800">Manage Accounts</Link>
+            <Link to="/lifecycle" className="btn-primary-glow inline-flex items-center gap-2 rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-slate-950 hover:bg-amber-400">Sync Lifecycle</Link>
+          </div>
+        </div>
+      </div>
 
       {error && <InlineAlert tone="error" title="Unable to load dashboard" message={formatErr(error)} action={<button onClick={() => refetch()} className="rounded-md border border-red-700/40 px-2.5 py-1.5 text-xs hover:bg-red-900/20">Retry</button>} />}
 
@@ -420,17 +435,17 @@ function OverviewPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Link to="/watchlist" className="card-hover rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition hover:border-amber-700/40 hover:bg-slate-900">
-          <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-amber-400"><ShieldAlert size={18}/><span className="font-medium text-white">EOS/EOL Watchlist</span></div><ChevronRight size={16} className="text-slate-500"/></div>
-          <p className="mt-2 text-sm text-slate-400">Review technologies nearing or past lifecycle milestones and prioritize remediation.</p>
+        <Link to="/watchlist" className="group card-hover glass-panel rounded-xl border border-slate-800 bg-slate-900/60 p-5 transition hover:border-amber-700/40 hover:bg-slate-900">
+          <div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="rounded-lg bg-amber-500/10 p-2 text-amber-400 ring-1 ring-amber-500/20"><ShieldAlert size={18}/></div><span className="font-medium text-white">EOS/EOL Watchlist</span></div><ChevronRight size={16} className="text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-amber-400"/></div>
+          <p className="mt-3 text-sm leading-6 text-slate-400">Review technologies nearing or past lifecycle milestones and prioritize remediation.</p>
         </Link>
-        <Link to="/resources" className="card-hover rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition hover:border-sky-700/40 hover:bg-slate-900">
-          <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-sky-400"><Server size={18}/><span className="font-medium text-white">Resource Inventory</span></div><ChevronRight size={16} className="text-slate-500"/></div>
-          <p className="mt-2 text-sm text-slate-400">Search discovered AWS resources, states, versions, and enrichment details.</p>
+        <Link to="/resources" className="group card-hover glass-panel rounded-xl border border-slate-800 bg-slate-900/60 p-5 transition hover:border-sky-700/40 hover:bg-slate-900">
+          <div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="rounded-lg bg-sky-500/10 p-2 text-sky-400 ring-1 ring-sky-500/20"><Server size={18}/></div><span className="font-medium text-white">Resource Inventory</span></div><ChevronRight size={16} className="text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-sky-400"/></div>
+          <p className="mt-3 text-sm leading-6 text-slate-400">Search discovered AWS resources, states, versions, and enrichment details.</p>
         </Link>
-        <Link to="/coverage" className="card-hover rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition hover:border-emerald-700/40 hover:bg-slate-900">
-          <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-emerald-400"><Network size={18}/><span className="font-medium text-white">Collector Coverage</span></div><ChevronRight size={16} className="text-slate-500"/></div>
-          <p className="mt-2 text-sm text-slate-400">Inspect adapter coverage, discovery breadth, and collection diagnostics.</p>
+        <Link to="/coverage" className="group card-hover glass-panel rounded-xl border border-slate-800 bg-slate-900/60 p-5 transition hover:border-emerald-700/40 hover:bg-slate-900">
+          <div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-400 ring-1 ring-emerald-500/20"><Network size={18}/></div><span className="font-medium text-white">Collector Coverage</span></div><ChevronRight size={16} className="text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-emerald-400"/></div>
+          <p className="mt-3 text-sm leading-6 text-slate-400">Inspect adapter coverage, discovery breadth, and collection diagnostics.</p>
         </Link>
       </div>
     </div>
@@ -772,15 +787,19 @@ function LoginPage() {
   }
 
   return (
-    <div className="theme-app flex min-h-screen items-center justify-center bg-slate-950 p-6">
-      <div className="w-full max-w-md">
+    <div className="theme-app relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 p-6">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-amber-500/10 blur-3xl" />
+        <div className="absolute right-0 top-1/4 h-80 w-80 rounded-full bg-sky-500/10 blur-3xl" />
+      </div>
+      <div className="relative w-full max-w-md animate-fade-up">
         <div className="mb-4 flex justify-end"><ThemeToggle compact /></div>
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400"><Activity size={24} /></div>
-          <h1 className="text-2xl font-semibold text-white">TechDebt Platform</h1>
-          <p className="mt-1 text-sm text-slate-400">AWS Lifecycle & Technical Debt Intelligence</p>
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-600/10 text-amber-400 ring-1 ring-amber-500/20 shadow-lg shadow-amber-500/10"><Activity size={26} /></div>
+          <h1 className="text-3xl font-semibold tracking-tight text-white">TechDebt Platform</h1>
+          <p className="mt-1.5 text-sm text-slate-400">AWS Lifecycle & Technical Debt Intelligence</p>
         </div>
-        <div className="card-hover rounded-xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl shadow-black/20">
+        <div className="glass-panel rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl shadow-black/20">
           <h2 className="text-lg font-medium text-white">Sign in to AWS</h2>
           <p className="mt-1 text-sm text-slate-400">Use read-only Access Key credentials to connect your AWS account for discovery.</p>
           <form onSubmit={onLogin} className="mt-5 space-y-4">
@@ -793,7 +812,7 @@ function LoginPage() {
               <input type="password" value={secretKey} onChange={e=>setSecretKey(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none ring-amber-500/30 focus:border-amber-600 focus:ring-2" placeholder="Secret access key" autoComplete="new-password" required />
             </div>
             {error && <InlineAlert tone="error" message={error} />}
-            <button type="submit" disabled={loading || !accessKey || !secretKey} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-3 py-2.5 text-sm font-semibold text-slate-950 hover:bg-amber-400 disabled:opacity-50">{loading ? <><Loader2 size={16} className="animate-spin" />Signing in...</> : 'Sign in'}</button>
+            <button type="submit" disabled={loading || !accessKey || !secretKey} className="btn-primary-glow inline-flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-3 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-400 disabled:opacity-50">{loading ? <><Loader2 size={16} className="animate-spin" />Signing in...</> : 'Sign in'}</button>
           </form>
           <div className="mt-4 flex items-center gap-2 text-xs text-slate-500"><Clock size={14}/>Credentials are validated via AWS STS. Read-only IAM permissions are recommended.</div>
         </div>
