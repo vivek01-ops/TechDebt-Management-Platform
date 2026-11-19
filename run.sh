@@ -18,14 +18,12 @@ else
   exit 1
 fi
 
-if [ ! -f .env ] && [ -f .env.example ]; then
-  cp .env.example .env
-  echo "Created .env from .env.example"
-fi
+# Pull the latest images defined in docker-compose.yml (will skip if not image-based)
+echo "Pulling Docker images..."
+docker compose pull 2>/dev/null || true
 
-echo "Starting TechDebt Management Platform (Docker Compose)..."
-echo "Frontend: http://localhost:5173"
-echo "Backend:  http://localhost:8000 (health: /health, docs: /docs)"
-echo
+# If any services still use build, we cannot pull; inform the user.
+# For image-based services (postgres, redis, and any with :tag), they are now pulled.
 
-exec "${COMPOSE[@]}" up --build "$@"
+echo "Starting containers..."
+exec "${COMPOSE[@]}" up "$@"

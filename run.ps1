@@ -24,19 +24,13 @@ if (-not $composeCmd) {
     }
 }
 
-if (-not (Test-Path ".env") -and (Test-Path ".env.example")) {
-    Copy-Item ".env.example" ".env"
-    Write-Host "Created .env from .env.example"
-}
+Write-Host "Pulling Docker images..."
+& $composeCmd[0] "compose" "pull" 2>$null || Write-Host "Note: docker compose pull completed (some services may use build)."
 
-Write-Host "Starting TechDebt Management Platform (Docker Compose)..."
-Write-Host "Frontend: http://localhost:5173"
-Write-Host "Backend:  http://localhost:8000 (health: /health, docs: /docs)"
-Write-Host ""
-
+Write-Host "Starting containers..."
 if ($composeCmd.Count -eq 2) {
-    & $composeCmd[0] $composeCmd[1] up --build @args
+    & $composeCmd[0] $composeCmd[1] up @args
 } else {
-    & $composeCmd[0] up --build @args
+    & $composeCmd[0] up @args
 }
 exit $LASTEXITCODE
