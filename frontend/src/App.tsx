@@ -8,31 +8,57 @@ import {
   LayoutDashboard, Cloud, Server, Package, ShieldAlert, AlertTriangle, BarChart3,
   Wrench, Network, History, Database, Users, Settings, RefreshCw, Search, Play, LogOut,
   Activity, ChevronRight, CheckCircle2, Clock, XCircle, Info, Bell, X, Loader2, Inbox,
-  Menu, Sun, Moon, PanelLeftClose, PanelLeftOpen
+  Menu, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react'
 
+type ThemePreference = 'light' | 'dark' | 'system'
 type Theme = 'light' | 'dark'
 type ToastTone = 'success' | 'error' | 'info' | 'warning'
 type Toast = { id: number; title: string; description?: string; tone: ToastTone }
 
-const ThemeContext = createContext<{ theme: Theme; toggle: () => void } | null>(null)
+const ThemeContext = createContext<{ preference: ThemePreference; theme: Theme; setPreference: (p: ThemePreference) => void; cycleTheme: () => void; toggle: () => void } | null>(null)
 const ToastContext = createContext<{ notify: (t: Omit<Toast, 'id'>) => void } | null>(null)
 
-function getInitialTheme(): Theme {
+function getSystemTheme(): Theme {
   if (typeof window === 'undefined') return 'dark'
-  const saved = window.localStorage.getItem('td_theme')
-  if (saved === 'light' || saved === 'dark') return saved
   return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
 }
 
+function getInitialPreference(): ThemePreference {
+  if (typeof window === 'undefined') return 'system'
+  const saved = window.localStorage.getItem('td_theme')
+  if (saved === 'light' || saved === 'dark' || saved === 'system') return saved
+  return 'system'
+}
+
 function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme)
+  const [preference, setPreference] = useState<ThemePreference>(getInitialPreference)
+  const [systemTheme, setSystemTheme] = useState<Theme>(getSystemTheme)
+  const theme: Theme = preference === 'system' ? systemTheme : preference
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mql = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = (e?: MediaQueryListEvent) => setSystemTheme(e ? (e.matches ? 'dark' : 'light') : (mql.matches ? 'dark' : 'light'))
+    onChange()
+    if (mql.addEventListener) mql.addEventListener('change', onChange)
+    else mql.addListener(onChange)
+    return () => {
+      if (mql.removeEventListener) mql.removeEventListener('change', onChange)
+      else mql.removeListener(onChange)
+    }
+  }, [])
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
-    window.localStorage.setItem('td_theme', theme)
-  }, [theme])
-  const toggle = useCallback(() => setTheme(t => t === 'dark' ? 'light' : 'dark'), [])
-  return <ThemeContext.Provider value={{ theme, toggle }}>{children}</ThemeContext.Provider>
+    window.localStorage.setItem('td_theme', preference)
+  }, [theme, preference])
+
+  const cycleTheme = useCallback(() => {
+    setPreference(p => p === 'system' ? 'light' : p === 'light' ? 'dark' : 'system')
+  }, [])
+
+  return <ThemeContext.Provider value={{ preference, theme, setPreference, cycleTheme, toggle: cycleTheme }}>{children}</ThemeContext.Provider>
 }
 
 function useTheme() {
@@ -139,16 +165,18 @@ function formatErr(err: any): string {
 }
 
 function ThemeToggle({ compact = false }: { compact?: boolean }) {
-  const { theme, toggle } = useTheme()
-  const isDark = theme === 'dark'
+  const { preference, cycleTheme } = useTheme()
+  const label = preference === 'system' ? 'System' : preference === 'dark' ? 'Dark' : 'Light'
+  const next = preference === 'system' ? 'light' : preference === 'light' ? 'dark' : 'system'
+  const Icon = preference === 'system' ? Monitor : preference === 'dark' ? Moon : Sun
   return (
     <button
-      onClick={toggle}
-      title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+      onClick={cycleTheme}
+      title={`Theme: ${label} (click to switch to ${next})`}
       className={`inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${compact ? 'px-2.5' : ''}`}
     >
-      {isDark ? <Sun size={15} /> : <Moon size={15} />}
-      {!compact && <span>{isDark ? 'Light mode' : 'Dark mode'}</span>}
+      <Icon size={15} />
+      {!compact && <span>{label} mode</span>}
     </button>
   )
 }

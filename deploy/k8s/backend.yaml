@@ -7,12 +7,11 @@ metadata:
     app.kubernetes.io/name: backend
     app.kubernetes.io/part-of: techdebt-platform
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - name: http
       port: 8000
       targetPort: 8000
-      nodePort: 30080
   selector:
     app: backend
 ---

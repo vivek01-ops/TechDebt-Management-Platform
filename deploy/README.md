@@ -85,17 +85,20 @@ helm upgrade --install techdebt deploy/helm/techdebt \
 
 ## Access
 
-- **NodePort (default):** Frontend `http://<node-ip>:30173`, Backend `http://<node-ip>:30080`
-- **Port-forward:**
+- **Ingress (recommended, after installing an Ingress Controller):** enabled by default for host `techdebt.local`. Install/configure an ingress controller (e.g. NGINX Ingress), map DNS/`/etc/hosts` to the controller address, and access `http://techdebt.local` (routes `/` to frontend and `/api`, `/health`, `/docs`, `/openapi.json` to backend). Adjust in `deploy/k8s/ingress.yaml` or Helm values.
+  - With a working ingress controller, app services (frontend/backend) can remain **ClusterIP** (no NodePort required on app services). The controller/service must still be externally reachable.
+- **Port-forward (dev/local fallback):**
   ```bash
   kubectl port-forward svc/frontend -n techdebt 5173:5173
   kubectl port-forward svc/backend -n techdebt 8000:8000
+  # or with Helm release/service names:
+  # kubectl port-forward svc/<release>-techdebt-platform-frontend -n techdebt 5173:5173
   ```
-- **Ingress:** enabled by default for host `techdebt.local` (configure DNS/hosts and an ingress controller, e.g. NGINX ingress). Adjust in `deploy/k8s/ingress.yaml` or Helm values.
+- **NodePort (optional):** if you need direct NodePort access (no ingress controller), set frontend/backend service type to `NodePort` and specify node ports in Helm values or raw manifests. Not required when using Ingress.
 
 ## Configuration notes
 
-- Default manifests/charts are tuned for **local/dev**: NodePort services, Vite dev frontend, `uvicorn` backend, ephemeral-to-PVC Postgres defaults, sample secrets.
+- Default manifests/charts are tuned for **local/dev**: Ingress-first with **ClusterIP** app services (frontend/backend), Vite dev frontend, `uvicorn` backend, PVC-backed Postgres defaults, and sample secrets. Install an Ingress Controller for external access, or use `kubectl port-forward`/optional NodePort overrides.
 - **Secrets:** change `SECRET_KEY` and database credentials before any shared use; use external secret management for production.
 - **Persistence:** Postgres uses a PVC (`5Gi`) in provided manifests/chart; ensure a suitable StorageClass in your cluster.
 - **AWS access:** login via portal (Access Key/Secret Key). Cluster egress must allow AWS APIs and lifecycle data sources.
