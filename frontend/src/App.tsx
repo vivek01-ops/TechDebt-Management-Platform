@@ -825,6 +825,7 @@ function LoginPage() {
   const { notify } = useToast()
   const [accessKey, setAccessKey] = useState('')
   const [secretKey, setSecretKey] = useState('')
+  const [sessionToken, setSessionToken] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -833,7 +834,7 @@ function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const test = await api.testConnection({ access_key_id: accessKey, secret_access_key: secretKey })
+      const test = await api.testConnection({ access_key_id: accessKey, secret_access_key: secretKey, session_token: sessionToken })
       if (!test?.ok) throw new Error(test?.error || 'Invalid AWS credentials')
       const acct = await api.createAccount({
         account_id: test.identity?.account_id,
@@ -841,6 +842,7 @@ function LoginPage() {
         auth_type: 'keys',
         access_key_id: accessKey,
         secret_access_key: secretKey,
+        session_token: sessionToken,
       })
       let connectRes: any = null
       if (acct?.id) connectRes = await api.connectAccount(acct.id)
@@ -882,6 +884,10 @@ function LoginPage() {
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-400">Secret Access Key</label>
               <input type="password" value={secretKey} onChange={e=>setSecretKey(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none ring-amber-500/30 focus:border-amber-600 focus:ring-2" placeholder="Secret access key" autoComplete="new-password" required />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-400">Session Token</label>
+              <input value={sessionToken} onChange={e=>setSessionToken(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none ring-amber-500/30 focus:border-amber-600 focus:ring-2" placeholder="Your AWS session token" autoComplete="off" />
             </div>
             {error && <InlineAlert tone="error" message={error} />}
             <button type="submit" disabled={loading || !accessKey || !secretKey} className="btn-primary-glow inline-flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-3 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-400 disabled:opacity-50">{loading ? <><Loader2 size={16} className="animate-spin" />Signing in...</> : 'Sign in'}</button>
