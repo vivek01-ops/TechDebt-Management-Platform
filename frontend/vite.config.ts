@@ -8,6 +8,7 @@ export default defineConfig({
     include: ['tslib'],
   },
   server: {
+    allowedHosts: ['techdebt.local'],
     proxy: {
       '/api': {
         target: process.env.VITE_PROXY_TARGET || 'http://localhost:8000',
