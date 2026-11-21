@@ -3,12 +3,13 @@ kind: Kustomization
 namespace: techdebt
 resources:
   - namespace.yaml
-  - config.yaml
-  - postgres-pvc.yaml
-  - postgres.yaml
-  - redis.yaml
-  - backend.yaml
-  - worker.yaml
-  - frontend.yaml
-  - ingress.yaml
-
+  - ./configmap/config.yaml
+  - ./deployment/backend.yaml
+  - ./deployment/frontend.yaml
+  - ./deployment/worker.yaml
+  - ./service/backend.yaml
+  - ./service/frontend.yaml
+  - ./service/postgres.yaml
+  - ./service/redis.yaml
+  - ./ingress/ingress.yaml
+  - ./persistence/postgres-pvc.yaml
