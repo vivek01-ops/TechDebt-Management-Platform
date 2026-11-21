@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: worker
-          image: vivek512/techdebt-backend:sha-ff04713
+          image: vivek512/techdebt-backend:sha-0b61bc3
           imagePullPolicy: Always
           command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "--loglevel=info"]
           envFrom:
