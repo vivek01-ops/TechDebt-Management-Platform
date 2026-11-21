@@ -14,10 +14,17 @@ import {
 type ThemePreference = 'light' | 'dark' | 'system'
 type Theme = 'light' | 'dark'
 type ToastTone = 'success' | 'error' | 'info' | 'warning'
-type Toast = { id: number; title: string; description?: string; tone: ToastTone }
+type Toast = { id: number; title: string; description?: string; tone: ToastTone; timestamp?: string }
 
 const ThemeContext = createContext<{ preference: ThemePreference; theme: Theme; setPreference: (p: ThemePreference) => void; cycleTheme: () => void; toggle: () => void } | null>(null)
-const ToastContext = createContext<{ notify: (t: Omit<Toast, 'id'>) => void } | null>(null)
+const ToastContext = createContext<{ notify: (t: Omit<Toast, 'id'>) => void; dismissAll: () => void } | null>(null)
+
+function loadNotificationHistory(): Toast[] {
+  try { return window.localStorage.getItem('td_notification_history') ? JSON.parse(window.localStorage.getItem('td_notification_history')!) : [] } catch { return [] }
+}
+function saveNotificationHistory(history: Toast[]) {
+  try { window.localStorage.setItem('td_notification_history', JSON.stringify(history)) } catch {}
+}
 
 function getSystemTheme(): Theme {
   if (typeof window === 'undefined') return 'dark'
@@ -73,32 +80,59 @@ function useToast() {
   return ctx
 }
 
+function useNotificationHistory() {
+  const { notify } = useToast()
+  const [history, setHistory] = useState<Toast[]>(() => {
+    try { return JSON.parse(localStorage.getItem('td_notification_history') || '[]') } catch { return [] }
+  })
+  const addToHistory = useCallback((title: string, description?: string, tone: ToastTone = 'info') => {
+    notify({ tone, title, description })
+    setHistory(prev => {
+      const newItem: Toast = { id: Date.now(), tone, title, description, timestamp: new Date().toLocaleString() }
+      const updated = [...prev, newItem]
+      return updated.length > 20 ? updated.slice(-20) : updated
+    })
+  }, [])
+  const dismissAll = useCallback(() => setHistory([]), [])
+  return { history, addToHistory, dismissAll }
+}
+
 function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([])
+  const [notifications, setNotifications] = useState<Toast[]>(() => loadNotificationHistory())
   const notify = useCallback((t: Omit<Toast, 'id'>) => {
     const id = Date.now() + Math.floor(Math.random() * 1000)
-    setToasts(prev => [...prev, { ...t, id }])
-    window.setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 4500)
+    const newToast = { ...t, id, timestamp: new Date().toLocaleString() }
+    setNotifications(prev => {
+      const updated = [...prev, newToast]
+      return updated.length > 20 ? updated.slice(-20) : updated
+    })
+    saveNotificationHistory(notifications)
+    window.setTimeout(() => setNotifications(prev => prev.filter(x => x.id !== id)), 4500)
   }, [])
-  const remove = (id: number) => setToasts(prev => prev.filter(x => x.id !== id))
+  const dismissNotification = (id: number) => setNotifications(prev => prev.filter(x => x.id !== id))
+  const dismissAll = useCallback(() => {
+    setNotifications([])
+    saveNotificationHistory([])
+  }, [])
   const iconFor = (tone: ToastTone) => tone === 'success' ? <CheckCircle2 size={16} className="text-emerald-400" /> : tone === 'error' ? <XCircle size={16} className="text-red-400" /> : tone === 'warning' ? <AlertTriangle size={16} className="text-amber-400" /> : <Info size={16} className="text-sky-400" />
   const borderFor = (tone: ToastTone) => tone === 'success' ? 'border-emerald-800/60' : tone === 'error' ? 'border-red-800/60' : tone === 'warning' ? 'border-amber-800/60' : 'border-sky-800/60'
   return (
-    <ToastContext.Provider value={{ notify }}>
+    <ToastContext.Provider value={{ notify, dismissAll }}>
       {children}
-      <div className="pointer-events-none fixed right-4 top-4 z-[100] flex w-[360px] max-w-[calc(100vw-2rem)] flex-col gap-2">
-        {toasts.map(t => (
-          <div key={t.id} className={`pointer-events-auto rounded-xl border ${borderFor(t.tone)} bg-slate-900/95 p-3 shadow-2xl shadow-black/40 backdrop-blur`}>
+      <div className="pointer-events-none fixed right-4 top-4 z-[200] max-w-[400px] flex flex-col gap-2">
+        {notifications.map(n => (
+          <div key={n.id} className={['pointer-events-auto rounded-xl border', borderFor(n.tone), 'bg-slate-900/95 p-3 shadow-2xl shadow-black/40 backdrop-blur animate-slide-in'].join(' ')}>
             <div className="flex items-start gap-2.5">
-              <div className="mt-0.5">{iconFor(t.tone)}</div>
+              <div className="mt-0.5">{iconFor(n.tone)}</div>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-white">{t.title}</div>
-                {t.description && <div className="mt-0.5 break-words text-xs text-slate-400">{t.description}</div>}
+                <div className="text-sm font-medium text-white">{n.title}</div>
+                {n.description && <div className="mt-0.5 break-words text-xs text-slate-400">{n.description}</div>}
               </div>
-              <button onClick={() => remove(t.id)} className="rounded p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"><X size={14} /></button>
+              <button onClick={() => dismissNotification(n.id)} className="rounded p-1 text-slate-500 hover:bg-slate-800 hover:text-slate-300"><X size={14} /></button>
             </div>
           </div>
         ))}
+        {notifications.length > 0 && <div className="mt-2 text-xs text-slate-400 flex items-center gap-2"><span className="text-emerald-400">✓</span> {notifications.length} notification{notifications.length > 1 ? 's' : ''} dismissed</div>}
       </div>
     </ToastContext.Provider>
   )
@@ -275,6 +309,16 @@ function Shell({ children, onLogout }: { children: ReactNode; onLogout?: () => v
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const pageTitle = routeTitles[location.pathname] || (location.pathname.startsWith('/resources/') ? 'Resource Details' : 'TechDebt Platform')
+  const { addToHistory, dismissAll } = useNotificationHistory()
+
+  useEffect(() => {
+    addToHistory('Shell Initialized', 'Shell component mounted', 'info')
+    dismissAll()
+  }, [addToHistory, dismissAll])
+
+  useEffect(() => {
+    dismissAll()
+  }, [dismissAll])
 
   useEffect(() => { setMobileOpen(false) }, [location.pathname])
 
