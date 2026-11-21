@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: vivek512/techdebt-backend:sha-f07e896
+          image: vivek512/techdebt-backend:sha-73fdb0b
           imagePullPolicy: Always
           command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
           ports:
