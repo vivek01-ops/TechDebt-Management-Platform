@@ -54,7 +54,7 @@ backend:
   replicaCount: 1
   image:
     repository: vivek512/techdebt-backend
-    tag: sha-c3aa98e
+    tag: sha-dad9848
     pullPolicy: Always
   service:
     type: ClusterIP
@@ -77,7 +77,7 @@ worker:
   replicaCount: 1
   image:
     repository: vivek512/techdebt-backend
-    tag: sha-c3aa98e
+    tag: sha-dad9848
     pullPolicy: Always
   command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "--loglevel=info"]
   env: {}
@@ -87,7 +87,7 @@ frontend:
   replicaCount: 1
   image:
     repository: vivek512/techdebt-frontend
-    tag: sha-c3aa98e
+    tag: sha-dad9848
     pullPolicy: Always
   service:
     type: ClusterIP
